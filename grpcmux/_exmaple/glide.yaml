@@ -16,6 +16,8 @@ import:
   vcs: git
 - package: github.com/golang/glog
   vcs: git
+- package: github.com/ti/noframe/grpcmux
+  vcs: git
 - package: google.golang.org/genproto/googleapis
   version: e92b116572682a5b432ddd840aeaba2a559eeff1
   repo: https://github.com/google/go-genproto
