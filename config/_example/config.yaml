@@ -1,0 +1,16 @@
+addr: :9090
+loglevel: debug
+datasource:
+  cache: redis://127.0.0.1:6379:127.0.0.1:6380
+  sql: mysql://user:pass@127.0.0.1:306/db
+services:
+- name: xtimer
+  url: http://xtimer:8080/buket/example
+  hooks:
+    url: http://127.0.0.1:9090/timeup
+    key: http
+- name: userinfo
+  url: kv://userinfo
+  hooks:
+    url: ""
+    key: ""

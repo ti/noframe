@@ -1,0 +1,22 @@
+import:
+- package: github.com/grpc-ecosystem/grpc-gateway
+  version: v1.4.1
+- package: github.com/golang/protobuf
+  version: v1.1.0
+- package: golang.org/x/text
+  repo: https://github.com/golang/text
+  version: v0.3.0
+  vcs: git
+- package: golang.org/x/net
+  repo: https://github.com/golang/net
+  vcs: git
+- package: google.golang.org/grpc
+  version: v1.13.0
+  repo: https://github.com/grpc/grpc-go
+  vcs: git
+- package: github.com/golang/glog
+  vcs: git
+- package: google.golang.org/genproto/googleapis
+  version: e92b116572682a5b432ddd840aeaba2a559eeff1
+  repo: https://github.com/google/go-genproto
+  vcs: git

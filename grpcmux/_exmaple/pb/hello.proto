@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/api/annotations.proto";
+
+service Say {
+    rpc Hello (Request) returns (Response) {
+        option (google.api.http) = {
+			get: "/v1/greeter/hello/{id}"
+		};
+    }
+}
+
+message Request {
+    uint32 id = 1;
+    string name = 2;
+    int32 age = 3;
+    uint32 page = 4;
+    int64 limit = 5;
+}
+
+message Response {
+    string msg = 1;
+}
