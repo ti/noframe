@@ -18,7 +18,7 @@ func main() {
 		mux := grpcmux.NewServeMux()
 		//Handle grpc form /v1/greeter/hello/{id}
 		pb.RegisterSayServerHandlerClient(context.TODO(), mux.ServeMux, srv)
-		//Handle common http （结合grpc和mux）
+		//Handle common http
 		mux.Handle(http.MethodGet, "/v1/home/{id}/users", users)
 		log.Println("lis http on  8080")
 		//then try http://127.0.0.1:8080/v1/greeter/hello/12
