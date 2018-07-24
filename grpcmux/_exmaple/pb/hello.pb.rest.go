@@ -3,15 +3,13 @@
 
 package pb
 
-
 import _ "google.golang.org/genproto/googleapis/api/annotations"
 
 import (
 	runtime "github.com/grpc-ecosystem/grpc-gateway/runtime"
-	grpc "google.golang.org/grpc"
 	context "golang.org/x/net/context"
+	grpc "google.golang.org/grpc"
 )
-
 
 // Server API for Say service
 type sayServerClient struct {
@@ -31,4 +29,3 @@ func NewSayServerClient(srv SayServer) SayClient {
 		srv: srv,
 	}
 }
-
