@@ -7,7 +7,8 @@ import "google/api/annotations.proto";
 service Say {
     rpc Hello (Request) returns (Response) {
         option (google.api.http) = {
-			get: "/v1/greeter/hello/{id}"
+			post: "/v1/greeter/hello/{id}"
+			body:"*"
 		};
     }
 }
@@ -16,8 +17,15 @@ message Request {
     uint32 id = 1;
     string name = 2;
     int32 age = 3;
-    uint32 page = 4;
-    int64 limit = 5;
+    enum Type {
+        UNIVERSAL = 0;
+        WEB = 1;
+        IMAGES = 2;
+        LOCAL = 3;
+    }
+    Type type = 4;
+    uint32 page = 5;
+    int64 limit = 6;
 }
 
 message Response {
