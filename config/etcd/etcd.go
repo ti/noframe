@@ -2,7 +2,6 @@ package etcd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -51,10 +50,10 @@ func (e *etcdBackend) LoadConfig(o config.Options) error {
 		if err != nil {
 			return err
 		}
-		getResp, err = e.client.Get(ctx, e.url.Path)
+		getResp, err = e.client.Get(ctx, e.url.Path, clientv3.WithPrefix())
 		newEtcd = true
 	} else {
-		getResp, err = e.client.Get(ctx, e.url.Path)
+		getResp, err = e.client.Get(ctx, e.url.Path, clientv3.WithPrefix())
 		if err != nil {
 			e.client.Close()
 			e.client = nil
@@ -64,19 +63,31 @@ func (e *etcdBackend) LoadConfig(o config.Options) error {
 				return err
 			}
 			newEtcd = true
-			getResp, err = e.client.Get(ctx, e.url.Path)
+			getResp, err = e.client.Get(ctx, e.url.Path, clientv3.WithPrefix())
 		}
 	}
 	if err != nil {
 		return fmt.Errorf("bad cluster endpoints, which are not etcd servers: %v", err)
 	}
 	if len(getResp.Kvs) == 0 {
-		cnfJson, _ := json.MarshalIndent(e.instance, "", "\t")
-		if _, err := e.client.Put(ctx, e.url.Path, string(cnfJson)); err != nil {
-			return fmt.Errorf("key not found: %s, put error %s", e.url.Path, err)
+		kvs, err := config.Marshal(e.url.Path, e.instance)
+		if err != nil {
+			return fmt.Errorf("path %s marshal error %s", e.url.Path, err)
+		}
+		for _, kv := range kvs {
+			if _, err := e.client.Put(ctx, kv.Key, kv.Value); err != nil {
+				return fmt.Errorf("key not found: %s, put error %s", e.url.Path, err)
+			}
 		}
 	} else {
-		if err := json.Unmarshal([]byte(getResp.Kvs[0].Value), e.instance); err != nil {
+		var kvs []*config.KV
+		for _, kv := range getResp.Kvs {
+			kvs = append(kvs, &config.KV{
+				Key:   string(kv.Key),
+				Value: string(kv.Value),
+			})
+		}
+		if err := config.Unmarshal(e.url.Path, kvs, e.instance); err != nil {
 			return err
 		}
 	}
@@ -93,17 +104,36 @@ func (e *etcdBackend) LoadConfig(o config.Options) error {
 }
 
 func (e *etcdBackend) watch() {
-	wc := e.client.Watch(context.Background(), e.url.Path)
+	wc := e.client.Watch(context.Background(), e.url.Path, clientv3.WithPrefix())
 	for wresp := range wc {
 		if wresp.Err() != nil {
-			log.Error("Watch channel returned err %v", wresp.Err())
+			log.Errorf("Watch channel returned err %v", wresp.Err())
 			return
 		}
+		var isChange bool
 		for _, ev := range wresp.Events {
-			if ev.Type == clientv3.EventTypePut {
-				if err := json.Unmarshal([]byte(ev.Kv.Value), e.instance); err == nil {
-					e.onLoaded(e.instance)
-				}
+			if ev.Type == clientv3.EventTypePut || ev.Type == clientv3.EventTypeDelete {
+				isChange = true
+			}
+		}
+		if isChange {
+			getResp, err := e.client.Get(context.TODO(), e.url.Path, clientv3.WithPrefix())
+			if err != nil {
+				log.Errorf("Watch channel get prefix err %v", err)
+				continue
+			}
+			var kvs []*config.KV
+			for _, kv := range getResp.Kvs {
+				kvs = append(kvs, &config.KV{
+					Key:   string(kv.Key),
+					Value: string(kv.Value),
+				})
+			}
+			if err := config.Unmarshal(e.url.Path, kvs, e.instance); err != nil {
+				log.Errorf("Watch channel unmarshal err %s", err.Error())
+				continue
+			} else {
+				e.onLoaded(e.instance)
 			}
 		}
 	}
