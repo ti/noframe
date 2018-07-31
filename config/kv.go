@@ -90,7 +90,7 @@ func Marshal(key string, target interface{}) ([]*KV, error) {
 		}, nil
 	}
 	if !strings.HasSuffix(key, "/") {
-		simpleKv()
+		return simpleKv()
 	}
 	src := reflect.ValueOf(target)
 	if src.Kind() == reflect.Ptr {
