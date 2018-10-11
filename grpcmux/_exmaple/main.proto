@@ -3,15 +3,29 @@ syntax = "proto3";
 package pb;
 
 import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
 
 service Say {
     rpc Hello (Request) returns (Response) {
         option (google.api.http) = {
-			post: "/v1/greeter/hello/{id}"
+			get: "/v1/greeter/hello/{id}"
+		};
+    }
+
+    rpc Errors (google.protobuf.Empty) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+			get: "/v1/greeter/errors"
+		};
+    }
+
+    rpc Any (Data) returns (Data) {
+        option (google.api.http) = {
+			post: "/v1/greeter/any"
 			body:"*"
 		};
     }
 }
+
 
 message Request {
     uint32 id = 1;
@@ -31,3 +45,8 @@ message Request {
 message Response {
     string msg = 1;
 }
+
+message Data {
+    bytes data = 1;
+}
+

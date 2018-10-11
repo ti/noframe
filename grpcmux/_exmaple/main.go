@@ -1,7 +1,13 @@
 package main
 
 import (
+	"encoding/json"
+	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/ti/noframe/grpcmux"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"net/http"
 
 	"fmt"
@@ -45,4 +51,44 @@ func (h *sayServer) Hello(ctx context.Context, req *pb.Request) (*pb.Response, e
 	return &pb.Response{
 		Msg: fmt.Sprintf("hello %d", req.Id),
 	}, nil
+}
+
+func (h *sayServer) Any(ctx context.Context, in *pb.Data) (*pb.Data, error) {
+	var data map[string]interface{}
+	err := json.Unmarshal(in.Data, &data)
+	if err != nil {
+		return nil, status.New(codes.InvalidArgument, "invalid_argument").Err()
+	}
+	d, _ := json.Marshal(data)
+
+	return &pb.Data{
+		Data: d,
+	}, nil
+}
+
+func (h *sayServer) Errors(ctx context.Context, in *empty.Empty) (*empty.Empty, error) {
+	e, _ := status.New(codes.Canceled, "canceled").WithDetails(&errdetails.ResourceInfo{
+		ResourceType: "book",
+		ResourceName: "projects/1234/books/5678",
+		Owner:        "User",
+	},
+		&errdetails.RetryInfo{
+			RetryDelay: &duration.Duration{Seconds: 60},
+		},
+		&errdetails.DebugInfo{
+			StackEntries: []string{
+				"first stack",
+				"second stack",
+			},
+		},
+		&errdetails.RequestInfo{
+			RequestId:   "12125454",
+			ServingData: "yyyy",
+		},
+		&errdetails.LocalizedMessage{
+			Locale:  "zh-cn",
+			Message: "中国",
+		}, )
+
+	return nil, e.Err()
 }
