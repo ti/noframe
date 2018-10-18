@@ -26,10 +26,10 @@ func Unmarshal(key string, kvs []*KV, src interface{}) (target interface{}, err 
 	if len(kvs) == 0 {
 		return nil, errors.New("kvs size is 0")
 	}
-	targetType := reflect.Indirect(reflect.ValueOf(target)).Type()
+	targetType := reflect.Indirect(reflect.ValueOf(src)).Type()
 	target = reflect.New(targetType).Interface()
 	if reflect.ValueOf(src).Kind() != reflect.Ptr {
-		target = reflect.Indirect(reflect.ValueOf(target)).Interface()
+		target = reflect.Indirect(reflect.ValueOf(src)).Interface()
 	}
 	if !strings.HasSuffix(key, "/") {
 		err = json.Unmarshal([]byte(kvs[0].Value), target)
