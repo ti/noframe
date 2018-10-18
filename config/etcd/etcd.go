@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/pkg/transport"
+	"github.com/etcd-io/etcd/clientv3"
+	"github.com/etcd-io/etcd/pkg/transport"
 	log "github.com/sirupsen/logrus"
 	"github.com/ti/noframe/config"
 )
