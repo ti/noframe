@@ -40,13 +40,13 @@ func main() {
 	//监听配置文件变化，你可以安全地使用old.(string)， 库内已经做了封装
 	//你也可以将SetFieldListener设置在Init之前，它将通知配置文件读取之后的值
 	cfg.SetFieldListener("Services[0].Hooks", func(old, new interface{}) {
-		log.Println("配置从", old.(Hooks), "变为", new.(Hooks))
+		log.Println("change from", old.(Hooks), "to", new.(Hooks))
 	})
 	cfg.SetFieldListener("DataSource.cache", func(old, new interface{}) {
 		log.Println("todo something by", new.(string))
 	})
 
-	log.Println("配置完成", config.Addr)
+	log.Println("change complete", config.Addr)
 
 	time.Sleep(time.Hour)
 }

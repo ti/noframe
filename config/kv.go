@@ -22,19 +22,25 @@ func (s kvSort) Less(i, j int) bool { return s[i].Key < s[j].Key }
 func (s kvSort) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 //Unmarshal unmarshal interface to kv array
-func Unmarshal(key string, kvs []*KV, target interface{}) error {
+func Unmarshal(key string, kvs []*KV, src interface{}) (target interface{}, err error) {
 	if len(kvs) == 0 {
-		return errors.New("kvs size is 0")
+		return nil, errors.New("kvs size is 0")
+	}
+	targetType := reflect.Indirect(reflect.ValueOf(target)).Type()
+	target = reflect.New(targetType).Interface()
+	if reflect.ValueOf(src).Kind() != reflect.Ptr {
+		target = reflect.Indirect(reflect.ValueOf(target)).Interface()
 	}
 	if !strings.HasSuffix(key, "/") {
-		return json.Unmarshal([]byte(kvs[0].Value), target)
+		err = json.Unmarshal([]byte(kvs[0].Value), target)
+		return
 	}
-	src := reflect.ValueOf(target)
-	if src.Kind() == reflect.Ptr {
-		src = reflect.Indirect(src)
+	srcRef := reflect.ValueOf(src)
+	if srcRef.Kind() == reflect.Ptr {
+		src = reflect.Indirect(srcRef)
 	}
 	lenKey := len(key)
-	switch k := src.Kind(); k {
+	switch k := srcRef.Kind(); k {
 	case reflect.Map, reflect.Struct:
 		ret := "{"
 		maxIndex := len(kvs) - 1
@@ -50,7 +56,7 @@ func Unmarshal(key string, kvs []*KV, target interface{}) error {
 				ret += part
 			}
 		}
-		return json.Unmarshal([]byte(ret), target)
+		err = json.Unmarshal([]byte(ret), target)
 	case reflect.Slice:
 		//sort it first
 		sort.Sort(kvSort(kvs))
@@ -66,13 +72,11 @@ func Unmarshal(key string, kvs []*KV, target interface{}) error {
 				}
 			}
 		}
-		return json.Unmarshal([]byte(ret), target)
+		err = json.Unmarshal([]byte(ret), target)
 	default:
-		return json.Unmarshal([]byte(kvs[0].Value), target)
+		err = json.Unmarshal([]byte(kvs[0].Value), target)
 	}
-
-	return nil
-
+	return
 }
 
 //Marshal unmarshal interface to kv array

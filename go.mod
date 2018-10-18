@@ -2,12 +2,17 @@ module github.com/ti/noframe
 
 require (
 	github.com/coreos/etcd v3.3.10+incompatible
+	github.com/gogo/protobuf v1.1.1 // indirect
 	github.com/golang/protobuf v1.2.0
+	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/grpc-ecosystem/grpc-gateway v1.4.1
+	github.com/onrik/logrus v0.0.0-20181009124311-c9849815bc7c
+	github.com/sirupsen/logrus v1.1.1
 	golang.org/x/net v0.0.0-20180826012351-8a410e7b638d
 	golang.org/x/sys v0.0.0-20181005133103-4497e2df6f9e // indirect
 	google.golang.org/genproto v0.0.0-20180817151627-c66870c02cf8
 	google.golang.org/grpc v1.15.0
+	gopkg.in/yaml.v2 v2.2.1
 )
 
 replace (

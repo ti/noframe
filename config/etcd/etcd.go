@@ -87,8 +87,10 @@ func (e *etcdBackend) LoadConfig(o config.Options) error {
 				Value: string(kv.Value),
 			})
 		}
-		if err := config.Unmarshal(e.url.Path, kvs, e.instance); err != nil {
+		if newInstance, err := config.Unmarshal(e.url.Path, kvs, e.instance); err != nil {
 			return err
+		} else {
+			e.instance = newInstance
 		}
 	}
 	watch := o.Watch && e.onLoaded != nil
@@ -129,11 +131,12 @@ func (e *etcdBackend) watch() {
 					Value: string(kv.Value),
 				})
 			}
-			if err := config.Unmarshal(e.url.Path, kvs, e.instance); err != nil {
+			if newInstance, err := config.Unmarshal(e.url.Path, kvs, e.instance); err != nil {
 				log.Errorf("Watch channel unmarshal err %s", err.Error())
 				continue
 			} else {
-				e.onLoaded(e.instance)
+				e.instance = newInstance
+				e.onLoaded(newInstance)
 			}
 		}
 	}
