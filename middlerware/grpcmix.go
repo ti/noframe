@@ -1,11 +1,11 @@
 package middlerware
 
 import (
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
+	"google.golang.org/grpc"
 	"net/http"
 	"strings"
-	"golang.org/x/net/http2"
-	"google.golang.org/grpc"
-	"golang.org/x/net/http2/h2c"
 )
 
 //GRPCMixOptions the Options of GRPC Mix

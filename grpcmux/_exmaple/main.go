@@ -88,7 +88,7 @@ func (h *sayServer) Errors(ctx context.Context, in *empty.Empty) (*empty.Empty, 
 		&errdetails.LocalizedMessage{
 			Locale:  "zh-cn",
 			Message: "中国",
-		}, )
+		})
 
 	return nil, e.Err()
 }

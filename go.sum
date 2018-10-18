@@ -4,6 +4,7 @@ github.com/coreos/etcd v3.3.10+incompatible h1:KjVWqrZ5U0wa3CxY2AxlH6/UcB+PK2td1
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dominikh/go-tools v0.0.0-20180728063816-88497007e858/go.mod h1:qBNLV2EQXN9hMDGPA+nlUNDKcPCtmEvCC8iVgA6uBic=
+github.com/etcd-io/etcd v3.3.10+incompatible h1:lYhMO66oAbAts/SFwnN0s6IwCTL3cDt/F2z3r/ZC0AE=
 github.com/etcd-io/etcd v3.3.10+incompatible/go.mod h1:cdZ77EstHBwVtD6iTgzgvogwcjo9m4iOqoijouPJ4bs=
 github.com/gogo/protobuf v1.1.1 h1:72R+M5VuhED/KujmZVcIquuo8mBgX4oVda//DQb3PXo=
 github.com/gogo/protobuf v1.1.1/go.mod h1:r8qH/GZQm5c6nD/R0oafs1akxWv10x8SbQlK7atdtwQ=

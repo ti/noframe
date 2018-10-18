@@ -130,15 +130,26 @@ func (c *Config) onReloaded(cfg interface{}) {
 			log.Warnf("can not get config by field %s", err)
 			continue
 		}
-		if !hasPreInstance || !reflect.DeepEqual(oldValue, newValue) {
-			if oldValue == nil {
-				tx := reflect.Indirect(reflect.ValueOf(newValue)).Type()
-				oldValue = reflect.New(tx).Interface()
-				if reflect.ValueOf(newValue).Kind() != reflect.Ptr {
-					oldValue = reflect.Indirect(reflect.ValueOf(oldValue)).Interface()
+		if newValue == nil {
+			if oldValue != nil {
+				tx := reflect.Indirect(reflect.ValueOf(oldValue)).Type()
+				newValue = reflect.New(tx).Interface()
+				if reflect.ValueOf(oldValue).Kind() != reflect.Ptr {
+					newValue = reflect.Indirect(reflect.ValueOf(newValue)).Interface()
 				}
+				onChange(oldValue, newValue)
 			}
-			onChange(oldValue, newValue)
+		} else {
+			if !hasPreInstance || !reflect.DeepEqual(oldValue, newValue) {
+				if oldValue == nil {
+					tx := reflect.Indirect(reflect.ValueOf(newValue)).Type()
+					oldValue = reflect.New(tx).Interface()
+					if reflect.ValueOf(newValue).Kind() != reflect.Ptr {
+						oldValue = reflect.Indirect(reflect.ValueOf(oldValue)).Interface()
+					}
+				}
+				onChange(oldValue, newValue)
+			}
 		}
 	}
 	c.preInstance = clone(cfg)
@@ -147,10 +158,15 @@ func (c *Config) onReloaded(cfg interface{}) {
 func getFieldValue(src interface{}, path string) (interface{}, error) {
 	dist, err := getFieldValueReflect(reflect.ValueOf(src), compile(path))
 	if err != nil {
+		if err == errorOutOfRange {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("path %s errr for %s", path, err)
 	}
 	return dist.Interface(), nil
 }
+
+var errorOutOfRange = errors.New("out of range")
 
 func getFieldValueReflect(src reflect.Value, paths []string) (reflect.Value, error) {
 	if len(paths) == 0 {
@@ -172,6 +188,9 @@ func getFieldValueReflect(src reflect.Value, paths []string) (reflect.Value, err
 		n, en := strconv.Atoi(key)
 		if en != nil {
 			return reflect.Value{}, fmt.Errorf("%s is not a number %s", key, en)
+		}
+		if src.Len() < n+1 {
+			return reflect.Value{}, errorOutOfRange
 		}
 		src = src.Index(n)
 	case reflect.Ptr:

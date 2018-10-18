@@ -1,12 +1,12 @@
 package config
 
 import (
-	"errors"
-	"strings"
 	"encoding/json"
+	"errors"
 	"reflect"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 //KV the key value of a interface
@@ -22,61 +22,78 @@ func (s kvSort) Less(i, j int) bool { return s[i].Key < s[j].Key }
 func (s kvSort) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 //Unmarshal unmarshal interface to kv array
-func Unmarshal(key string, kvs []*KV, src interface{}) (target interface{}, err error) {
+func Unmarshal(key string, kvs []*KV, src interface{}) (err error) {
 	if len(kvs) == 0 {
-		return nil, errors.New("kvs size is 0")
+		return errors.New("kvs size is 0")
 	}
 	targetType := reflect.Indirect(reflect.ValueOf(src)).Type()
-	target = reflect.New(targetType).Interface()
+	target := reflect.New(targetType).Interface()
 	if reflect.ValueOf(src).Kind() != reflect.Ptr {
 		target = reflect.Indirect(reflect.ValueOf(src)).Interface()
 	}
+
 	if !strings.HasSuffix(key, "/") {
 		err = json.Unmarshal([]byte(kvs[0].Value), target)
-		return
-	}
-	srcRef := reflect.ValueOf(src)
-	if srcRef.Kind() == reflect.Ptr {
-		src = reflect.Indirect(srcRef)
-	}
-	lenKey := len(key)
-	switch k := srcRef.Kind(); k {
-	case reflect.Map, reflect.Struct:
-		ret := "{"
-		maxIndex := len(kvs) - 1
-		for i, kv := range kvs {
-			mapKey := kv.Key[lenKey:]
-			if strings.HasPrefix(kv.Key, key) && !strings.Contains(mapKey, "/") {
-				part := `"` + mapKey + `":` + kv.Value
-				if i == maxIndex {
-					part += "}"
-				} else {
-					part += ","
-				}
-				ret += part
-			}
+	} else {
+		srcRef := reflect.ValueOf(src)
+		if srcRef.Kind() == reflect.Ptr {
+			srcRef = reflect.Indirect(srcRef)
 		}
-		err = json.Unmarshal([]byte(ret), target)
-	case reflect.Slice:
-		//sort it first
-		sort.Sort(kvSort(kvs))
-		ret := "["
-		maxIndex := len(kvs) - 1
-		for i, kv := range kvs {
-			if strings.HasPrefix(kv.Key, key) && !strings.Contains(kv.Key[lenKey:], "/") {
-				ret += kv.Value
-				if i == maxIndex {
-					ret += "]"
-				} else {
-					ret += ","
+		lenKey := len(key)
+		switch k := srcRef.Kind(); k {
+		case reflect.Map, reflect.Struct:
+			ret := "{"
+			maxIndex := len(kvs) - 1
+			for i, kv := range kvs {
+				mapKey := kv.Key[lenKey:]
+				if strings.HasPrefix(kv.Key, key) && !strings.Contains(mapKey, "/") {
+					part := `"` + mapKey + `":` + kv.Value
+					if i == maxIndex {
+						part += "}"
+					} else {
+						part += ","
+					}
+					ret += part
 				}
 			}
+			err = json.Unmarshal([]byte(ret), target)
+		case reflect.Slice:
+			//sort it first
+			sort.Sort(kvSort(kvs))
+			ret := "["
+			maxIndex := len(kvs) - 1
+			for i, kv := range kvs {
+				if strings.HasPrefix(kv.Key, key) && !strings.Contains(kv.Key[lenKey:], "/") {
+					ret += kv.Value
+					if i == maxIndex {
+						ret += "]"
+					} else {
+						ret += ","
+					}
+				}
+			}
+			err = json.Unmarshal([]byte(ret), target)
+		default:
+			err = json.Unmarshal([]byte(kvs[0].Value), target)
 		}
-		err = json.Unmarshal([]byte(ret), target)
-	default:
-		err = json.Unmarshal([]byte(kvs[0].Value), target)
+	}
+	if err == nil {
+		cloneValue(target, src)
 	}
 	return
+}
+
+func cloneValue(src interface{}, dest interface{}) {
+	x := reflect.ValueOf(src)
+	if x.Kind() == reflect.Ptr {
+		starX := x.Elem()
+		y := reflect.New(starX.Type())
+		starY := y.Elem()
+		starY.Set(starX)
+		reflect.ValueOf(dest).Elem().Set(y.Elem())
+	} else {
+		dest = x.Interface()
+	}
 }
 
 //Marshal unmarshal interface to kv array

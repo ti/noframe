@@ -1,6 +1,7 @@
 module github.com/ti/noframe
 
 require (
+	github.com/coreos/etcd v3.3.10+incompatible // indirect
 	github.com/etcd-io/etcd v3.3.10+incompatible
 	github.com/gogo/protobuf v1.1.1 // indirect
 	github.com/golang/protobuf v1.2.0
