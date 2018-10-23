@@ -96,7 +96,7 @@ func (c *Config) GetConfig() interface{} {
 func (c *Config) AddBackend(scheme string, backend Backend) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	std.backEnds[scheme] = backend
+	c.backEnds[scheme] = backend
 }
 
 //SetFieldListener bind some trigger when config is changed
