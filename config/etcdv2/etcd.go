@@ -27,6 +27,12 @@ func init() {
 	config.AddBackend("etcdv2", &etcdBackend{})
 }
 
+// New new instance
+func New() *etcdBackend {
+	return &etcdBackend{}
+}
+
+
 // LoadConfig gets the JSON from ETCD and unmarshals it to the config object
 func (e *etcdBackend) LoadConfig(o config.Options) error {
 	if o.DefaultConfig == nil {

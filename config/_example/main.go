@@ -15,7 +15,6 @@ var defaultConfig = Config{
 		"cache": "redis://127.0.0.1:6379:127.0.0.1:6380",
 	},
 	Services: []Service{
-
 		Service{
 			Name: "xtimer",
 			Url:  "http://xtimer:8080/buket/example",

@@ -20,6 +20,11 @@ type etcdBackend struct {
 	onLoaded config.OnLoaded
 }
 
+// New new instance
+func New() *etcdBackend {
+	return &etcdBackend{}
+}
+
 func init() {
 	config.AddBackend("etcd", &etcdBackend{})
 }

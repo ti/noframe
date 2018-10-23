@@ -44,9 +44,17 @@ message Request {
 
 message Response {
     string msg = 1;
+    Type type = 2;
 }
 
 message Data {
     bytes data = 1;
+}
+
+enum Type {
+    UNIVERSAL = 0;
+    WEB = 1;
+    IMAGES = 2;
+    LOCAL = 3;
 }
 

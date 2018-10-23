@@ -50,6 +50,7 @@ type sayServer struct{}
 func (h *sayServer) Hello(ctx context.Context, req *pb.Request) (*pb.Response, error) {
 	return &pb.Response{
 		Msg: fmt.Sprintf("hello %d", req.Id),
+		Type: pb.Type_IMAGES,
 	}, nil
 }
 
