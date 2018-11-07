@@ -25,7 +25,7 @@ type ServeMux struct {
 // NewServeMux allocates and returns a new ServeMux.
 func NewServeMux(opts ...runtime.ServeMuxOption) *ServeMux {
 	//fix http error for grpc gateway v1.5.0
-	//runtime.HTTPError = defaultHTTPError
+	runtime.HTTPError = defaultHTTPError
 	opts = append(opts, runtime.WithOutgoingHeaderMatcher(defaultOutgoingHeaderMatcher))
 	return &ServeMux{runtime.NewServeMux(opts...)}
 }
