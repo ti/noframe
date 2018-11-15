@@ -3,6 +3,7 @@ package grpcmux
 import (
 	"context"
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/httprule"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -176,6 +177,11 @@ type errorBody struct {
 	Code    int32      `protobuf:"varint,2,name=code" json:"code"`
 	Details []*any.Any `protobuf:"bytes,3,rep,name=details" json:"details,omitempty"`
 }
+
+// Make this also conform to proto.Message for builtin JSONPb Marshaler
+func (e *errorBody) Reset()         { *e = errorBody{} }
+func (e *errorBody) String() string { return proto.CompactTextString(e) }
+func (*errorBody) ProtoMessage()    {}
 
 var defaultOutgoingHeaderMatcher = func(key string) (string, bool) {
 	return fmt.Sprintf("%s%s", runtime.MetadataHeaderPrefix, key), true
