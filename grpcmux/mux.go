@@ -15,6 +15,7 @@ import (
 	"net"
 	"net/http"
 	"net/textproto"
+	"strconv"
 	"strings"
 )
 
@@ -90,7 +91,7 @@ func parsePatternURL(path string) (runtime.Pattern, error) {
 }
 
 // isPermanentHTTPHeader checks whether hdr belongs to the list of
-// permenant request headers maintained by IANA.
+// permanent request headers maintained by IANA.
 // http://www.iana.org/assignments/message-headers/message-headers.xml
 func isPermanentHTTPHeader(hdr string) bool {
 	switch hdr {
@@ -139,13 +140,12 @@ func defaultHTTPError(ctx context.Context, mux *runtime.ServeMux, marshaler runt
 	if !ok {
 		s = status.New(codes.Unknown, err.Error())
 	}
-
+	code := s.Code()
 	body := &errorBody{
-		Error:   s.Message(),
-		Code:    int32(s.Code()),
-		Details: s.Proto().GetDetails(),
+		Error:            CodeToError(code),
+		ErrorDescription: s.Message(),
+		Details:          s.Proto().GetDetails(),
 	}
-
 	buf, merr := marshaler.Marshal(body)
 	if merr != nil {
 		grpclog.Infof("Failed to marshal error message %q: %v", body, merr)
@@ -163,7 +163,12 @@ func defaultHTTPError(ctx context.Context, mux *runtime.ServeMux, marshaler runt
 
 	handleForwardResponseServerMetadata(w, mux, md)
 	handleForwardResponseTrailerHeader(w, md)
-	st := runtime.HTTPStatusFromCode(s.Code())
+	var st int
+	if st > 100 {
+		st = httpStatusCode(s.Code())
+	} else {
+		st = runtime.HTTPStatusFromCode(s.Code())
+	}
 	w.WriteHeader(st)
 	if _, err := w.Write(buf); err != nil {
 		grpclog.Infof("Failed to write response: %v", err)
@@ -173,9 +178,9 @@ func defaultHTTPError(ctx context.Context, mux *runtime.ServeMux, marshaler runt
 }
 
 type errorBody struct {
-	Error   string     `protobuf:"bytes,1,name=error" json:"error"`
-	Code    int32      `protobuf:"varint,2,name=code" json:"code"`
-	Details []*any.Any `protobuf:"bytes,3,rep,name=details" json:"details,omitempty"`
+	Error            string     `protobuf:"bytes,1,name=error" json:"error"`
+	ErrorDescription string     `protobuf:"bytes,1,name=error_description" json:"error_description"`
+	Details          []*any.Any `protobuf:"bytes,3,rep,name=details" json:"details,omitempty"`
 }
 
 // Make this also conform to proto.Message for builtin JSONPb Marshaler
@@ -212,3 +217,50 @@ func handleForwardResponseTrailer(w http.ResponseWriter, md runtime.ServerMetada
 		}
 	}
 }
+
+// CodesErrors some erorrs string for grpc codes
+var CodesErrors = map[codes.Code]string{
+	codes.OK:                 "ok",
+	codes.Canceled:           "canceled",
+	codes.Unknown:            "unknown",
+	codes.InvalidArgument:    "invalid_argument",
+	codes.DeadlineExceeded:   "deadline_exceeded",
+	codes.NotFound:           "not_found",
+	codes.AlreadyExists:      "already_exists",
+	codes.PermissionDenied:   "permission_denied",
+	codes.ResourceExhausted:  "resource_exhausted",
+	codes.FailedPrecondition: "failed_precondition",
+	codes.Aborted:            "aborted",
+	codes.OutOfRange:         "out_of_range",
+	codes.Unimplemented:      "unimplemented",
+	codes.Internal:           "internal",
+	codes.Unavailable:        "unavailable",
+	codes.DataLoss:           "data_loss",
+	codes.Unauthenticated:    "unauthenticated",
+}
+
+// CodeToError translate grpc codes to error
+func CodeToError(c codes.Code) string {
+	errStr, ok := CodesErrors[c]
+	if ok {
+		return errStr
+	}
+	return strconv.FormatInt(int64(c), 10)
+}
+
+// httpStatusCode the 2xxx is 200, the 4xxx is 400, the 5xxx is 500
+func httpStatusCode(code codes.Code) (status int) {
+	for code >= 10 {
+		code = code / 10
+	}
+	switch code {
+	case 2:
+		status = 200
+	case 4:
+		status = 400
+	default:
+		status = 500
+	}
+	return
+}
+
