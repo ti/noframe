@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	etcd "github.com/etcd-io/etcd/client"
-	"github.com/etcd-io/etcd/pkg/transport"
 	log "github.com/sirupsen/logrus"
 	"github.com/ti/noframe/config"
+	etcd "go.etcd.io/etcd/client"
+	"go.etcd.io/etcd/pkg/transport"
 	"net/http"
 	"net/url"
 	"runtime"
@@ -31,7 +31,6 @@ func init() {
 func New() *etcdBackend {
 	return &etcdBackend{}
 }
-
 
 // LoadConfig gets the JSON from ETCD and unmarshals it to the config object
 func (e *etcdBackend) LoadConfig(o config.Options) error {

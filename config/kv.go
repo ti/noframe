@@ -1,4 +1,4 @@
-package kv
+package config
 
 import (
 	"encoding/json"
@@ -43,8 +43,29 @@ func getFiledTag(tagName string, f reflect.StructField) string {
 	return fKey
 }
 
-//GetKeysKind get all the keys and kind for list usage
-func GetKeysKind(key string, target interface{}) (keyTypeMap map[string]fieldKind, err error) {
+//GetPrefixKeys get the prefix keys by target
+func GetPrefixKeys(key string, target interface{}) (ret []string) {
+	keysKind, err := getKeysKind(key, target)
+	if err != nil {
+		return
+	}
+	if strings.HasSuffix(key, "/") {
+		ret = []string{key}
+		for k := range keysKind {
+			if !strings.HasPrefix(k, key) {
+				ret = append(ret, k)
+			}
+		}
+	} else {
+		for k := range keysKind {
+			ret = append(ret, k)
+		}
+	}
+	return
+}
+
+//getKeysKind get all the keys and kind for list usage
+func getKeysKind(key string, target interface{}) (keyTypeMap map[string]fieldKind, err error) {
 	src := getReflectValue(target)
 	mainKind := src.Kind()
 	keyTypeMap = make(map[string]fieldKind)
@@ -317,7 +338,7 @@ func unmarshalKVStructToJson(key string, target interface{}, kvs []*KV) (js stri
 		rootKey += "/"
 	}
 	var keysKind map[string]fieldKind
-	keysKind, err = GetKeysKind(key, target)
+	keysKind, err = getKeysKind(key, target)
 	if err != nil {
 		return
 	}

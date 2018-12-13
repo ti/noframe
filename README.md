@@ -1,4 +1,4 @@
 # Noframe 
 
-A framework by google 
+A framework inspired by google grpc
 

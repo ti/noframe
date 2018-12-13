@@ -15,14 +15,14 @@ var defaultConfig = Config{
 		"cache": "redis://127.0.0.1:6379:127.0.0.1:6380",
 	},
 	Services: []Service{
-		Service{
-			Name: "xtimer",
-			Url:  "http://xtimer:8080/buket/example",
+		{
+			Name: "timerservice",
+			Url:  "http://timerservice:8080/buket/example",
 			Hooks: Hooks{
 				Url: "http://127.0.0.1:9090/timeup", Key: "http",
 			},
 		},
-		Service{
+		{
 			Name: "userinfo",
 			Url:  "kv://userinfo",
 		},
@@ -31,7 +31,7 @@ var defaultConfig = Config{
 
 func main() {
 	config := &defaultConfig
-	err := cfg.Init(cfg.URL("etcd://10.10.134.30:2379,10.10.134.31:2379,10.10.134.32:2379/com/test/demo/"), cfg.WithDefault(config))
+	err := cfg.Init(cfg.URL("etcd://127.0.0.1:2379/demo/etcd/config"), cfg.WithDefault(config))
 	if err != nil {
 		panic(err)
 	}
@@ -41,6 +41,9 @@ func main() {
 	cfg.SetFieldListener("DataSource.cache", func(old, new interface{}) {
 		log.Println("todo something by", new.(string))
 	})
+	cfg.SetFieldListener("Addr", func(old, new interface{}) {
+		log.Println("Addr changed todo something by", new)
+	})
 
 	log.Println("change complete", config.Addr)
 
@@ -48,10 +51,12 @@ func main() {
 }
 
 type Config struct {
-	Addr       string
-	LogLevel   string
-	DataSource map[string]string
-	Services   []Service
+	Addr     string
+	LogLevel string
+	// the services will be the list of files
+	Services []Service `config:"exp/services/"`
+	// the DataSource will be in the path /demo/DataSource
+	DataSource map[string]string `config:"/demo/DataSource"`
 }
 
 type Service struct {

@@ -3,19 +3,19 @@ package etcd
 import (
 	"context"
 	"fmt"
+	"go.etcd.io/etcd/mvcc/mvccpb"
 	"net/url"
 	"strings"
 	"time"
 
-	"github.com/etcd-io/etcd/clientv3"
-	"github.com/etcd-io/etcd/pkg/transport"
 	log "github.com/sirupsen/logrus"
 	"github.com/ti/noframe/config"
+	"go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/pkg/transport"
 )
 
 type etcdBackend struct {
 	url      *url.URL
-	client   *clientv3.Client
 	instance interface{}
 	onLoaded config.OnLoaded
 }
@@ -23,6 +23,13 @@ type etcdBackend struct {
 // New new instance
 func New() *etcdBackend {
 	return &etcdBackend{}
+}
+
+var client *clientv3.Client
+
+//GetEtcd get ETCD client
+func GetEtcd() *clientv3.Client {
+	return client
 }
 
 func init() {
@@ -36,7 +43,6 @@ func (e *etcdBackend) LoadConfig(o config.Options) error {
 		panic("default config can not be nil")
 	}
 	var err error
-	var getResp *clientv3.GetResponse
 	var newEtcd bool
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
@@ -49,44 +55,46 @@ func (e *etcdBackend) LoadConfig(o config.Options) error {
 		e.instance = o.DefaultConfig
 		e.onLoaded = o.OnLoaded
 	}
-	if e.client == nil {
+	if client == nil {
 		//first time to load config
-		e.client, err = newEtcdClient(e.url)
+		client, err = newEtcdClient(e.url)
 		if err != nil {
 			return err
 		}
-		getResp, err = e.client.Get(ctx, e.url.Path, clientv3.WithPrefix())
 		newEtcd = true
-	} else {
-		getResp, err = e.client.Get(ctx, e.url.Path, clientv3.WithPrefix())
-		if err != nil {
-			e.client.Close()
-			e.client = nil
+	}
+	prefixKeys := config.GetPrefixKeys(e.url.Path, o.DefaultConfig)
+	etcdKvs, err := e.getKvs(ctx, prefixKeys)
+	if err != nil {
+		if !newEtcd {
+			client.Close()
+			client = nil
 			log.Warnf("etcd get key error ", err, " try 1 time")
-			e.client, err = newEtcdClient(e.url)
+			client, err = newEtcdClient(e.url)
 			if err != nil {
 				return err
 			}
 			newEtcd = true
-			getResp, err = e.client.Get(ctx, e.url.Path, clientv3.WithPrefix())
+			etcdKvs, err = e.getKvs(ctx, prefixKeys)
 		}
 	}
 	if err != nil {
 		return fmt.Errorf("bad cluster endpoints, which are not etcd servers: %v", err)
 	}
-	if len(getResp.Kvs) == 0 {
+
+	if len(etcdKvs) == 0 {
 		kvs, err := config.Marshal(e.url.Path, e.instance)
 		if err != nil {
 			return fmt.Errorf("path %s marshal error %s", e.url.Path, err)
 		}
 		for _, kv := range kvs {
-			if _, err := e.client.Put(ctx, kv.Key, kv.Value); err != nil {
+			if _, err := client.Put(ctx, kv.Key, kv.Value); err != nil {
 				return fmt.Errorf("key not found: %s, put error %s", e.url.Path, err)
 			}
 		}
 	} else {
 		var kvs []*config.KV
-		for _, kv := range getResp.Kvs {
+		for _, kv := range etcdKvs {
 			kvs = append(kvs, &config.KV{
 				Key:   string(kv.Key),
 				Value: string(kv.Value),
@@ -99,18 +107,60 @@ func (e *etcdBackend) LoadConfig(o config.Options) error {
 	}
 	watch := o.Watch && e.onLoaded != nil
 	if newEtcd && watch {
-		go e.watch()
+		go e.watch(context.Background(), e.url.Path, prefixKeys)
 	}
 	if !watch {
-		e.client.Close()
-		e.client = nil
+		client.Close()
+		client = nil
 	}
 	e.onLoaded(e.instance)
 	return nil
 }
 
-func (e *etcdBackend) watch() {
-	wc := e.client.Watch(context.Background(), e.url.Path, clientv3.WithPrefix())
+func (e *etcdBackend) getKvs(ctx context.Context, keys []string) (kvs []*mvccpb.KeyValue, err error) {
+	for _, key := range keys {
+		var opts []clientv3.OpOption
+		if strings.HasSuffix(key, "/") {
+			opts = append(opts, clientv3.WithPrefix())
+		}
+		getResp, err := client.Get(ctx, key, opts...)
+		if err != nil {
+			return nil, err
+		}
+		if len(getResp.Kvs) > 0 {
+			kvs = append(kvs, getResp.Kvs...)
+		}
+	}
+	return
+}
+
+func (e *etcdBackend) watch(ctx context.Context, rootKey string, keys []string) {
+	var watchKeys []string
+	var watchRootKeys []string
+	for _, k := range keys {
+		if strings.HasPrefix(k, rootKey) {
+			watchRootKeys = append(watchRootKeys, k)
+		} else {
+			watchKeys = append(watchKeys, k)
+		}
+	}
+	for _, key := range watchKeys {
+		var opts []clientv3.OpOption
+		if strings.HasSuffix(key, "/") {
+			opts = append(opts, clientv3.WithPrefix())
+		}
+		wc := client.Watch(ctx, key, opts...)
+		go e.onEtcdWatch(ctx, keys, wc)
+	}
+	var opts []clientv3.OpOption
+	if len(watchRootKeys) > 1 {
+		opts = append(opts, clientv3.WithPrefix())
+	}
+	wc := client.Watch(ctx, e.url.Path, opts...)
+	e.onEtcdWatch(ctx, keys, wc)
+}
+
+func (e *etcdBackend) onEtcdWatch(ctx context.Context, keys []string, wc clientv3.WatchChan) {
 	for wresp := range wc {
 		if wresp.Err() != nil {
 			log.Errorf("Watch channel returned err %v", wresp.Err())
@@ -123,19 +173,18 @@ func (e *etcdBackend) watch() {
 			}
 		}
 		if isChange {
-			getResp, err := e.client.Get(context.TODO(), e.url.Path, clientv3.WithPrefix())
+			etcdKvs, err := e.getKvs(ctx, keys)
 			if err != nil {
 				log.Errorf("Watch channel get prefix err %v", err)
 				continue
 			}
 			var kvs []*config.KV
-			for _, kv := range getResp.Kvs {
+			for _, kv := range etcdKvs {
 				kvs = append(kvs, &config.KV{
 					Key:   string(kv.Key),
 					Value: string(kv.Value),
 				})
 			}
-
 			if err := config.Unmarshal(e.url.Path, kvs, e.instance); err != nil {
 				log.Errorf("Watch channel unmarshal err %s", err.Error())
 				continue
@@ -145,6 +194,7 @@ func (e *etcdBackend) watch() {
 		}
 	}
 }
+
 func newEtcdClient(etcdUri *url.URL) (*clientv3.Client, error) {
 	etcdConfig := clientv3.Config{
 		Endpoints:   strings.Split(etcdUri.Host, ","),

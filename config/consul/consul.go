@@ -22,7 +22,6 @@ type consulBackend struct {
 	onLoaded config.OnLoaded
 }
 
-
 // New new instance
 func New() *consulBackend {
 	return &consulBackend{}
