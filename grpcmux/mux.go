@@ -55,13 +55,15 @@ const xForwardedHost = "x-forwarded-host"
 func annotateMetadata(req *http.Request) metadata.MD {
 	md := make(metadata.MD)
 	for key, vals := range req.Header {
-		lowerKey := strings.ToLower(key)
-		if isPermanentHTTPHeader(key) {
-			md[runtime.MetadataPrefix+lowerKey] = vals
-		} else if strings.HasPrefix(key, runtime.MetadataHeaderPrefix) {
-			md[lowerKey[lenMetadataHeaderPrefix:]] = vals
+		if key == "Authorization" || strings.HasPrefix(key, "X-") {
+			md[strings.ToLower(key)] = vals
 		} else {
-			md[lowerKey] = vals
+			key = textproto.CanonicalMIMEHeaderKey(key)
+			if isPermanentHTTPHeader(key) {
+				md[runtime.MetadataPrefix+key] = vals
+			} else if strings.HasPrefix(key, runtime.MetadataHeaderPrefix) {
+				md[key[lenMetadataHeaderPrefix:]] = vals
+			}
 		}
 	}
 	if len(md[xForwardedHost]) == 0 && req.Host != "" {
