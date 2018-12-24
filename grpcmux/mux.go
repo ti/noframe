@@ -38,10 +38,15 @@ func (s *ServeMux) Handle(method string, path string, h runtime.HandlerFunc) {
 	s.ServeMux.Handle(method, pattern, h)
 }
 
+//MuxedGrpc check the context is by mux grpc
+type MuxedGrpc struct {
+}
+
 //ServeHTTP add ctx from http request
 func (s *ServeMux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	md := annotateMetadata(req)
 	ctx := metadata.NewIncomingContext(req.Context(), md)
+	ctx = context.WithValue(ctx, MuxedGrpc{}, true)
 	req = req.WithContext(ctx)
 	s.ServeMux.ServeHTTP(w, req.WithContext(ctx))
 }
