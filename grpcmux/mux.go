@@ -170,7 +170,7 @@ func defaultHTTPError(ctx context.Context, mux *runtime.ServeMux, marshaler runt
 
 	handleForwardResponseServerMetadata(w, mux, md)
 	handleForwardResponseTrailerHeader(w, md)
-	var st int
+	st := int(code)
 	if st > 100 {
 		st = httpStatusCode(s.Code())
 	} else {
