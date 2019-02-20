@@ -27,7 +27,7 @@ type ServeMux struct {
 // NewServeMux allocates and returns a new ServeMux.
 func NewServeMux(opts ...runtime.ServeMuxOption) *ServeMux {
 	//fix http error for grpc gateway v1.5.0
-	runtime.HTTPError = defaultHTTPError
+	runtime.HTTPError = DefaultHTTPError
 	opts = append(opts, runtime.WithOutgoingHeaderMatcher(defaultOutgoingHeaderMatcher))
 	return &ServeMux{runtime.NewServeMux(opts...)}
 }
@@ -138,8 +138,8 @@ func isPermanentHTTPHeader(hdr string) bool {
 //
 // The response body returned by this function is a JSON object,
 // which contains a member whose key is "error" and whose value is err.Error().
-func defaultHTTPError(ctx context.Context, mux *runtime.ServeMux, marshaler runtime.Marshaler, w http.ResponseWriter, _ *http.Request, err error) {
-	const fallback = `{"error": "failed to marshal error message"}`
+func DefaultHTTPError(ctx context.Context, mux *runtime.ServeMux, marshaler runtime.Marshaler, w http.ResponseWriter, _ *http.Request, err error) {
+	const fallback = `{"error": "mux_marshal_error","error_description": "failed to marshal error message"}`
 	w.Header().Del("Trailer")
 	w.Header().Set("Content-Type", marshaler.ContentType())
 
@@ -184,6 +184,13 @@ func defaultHTTPError(ctx context.Context, mux *runtime.ServeMux, marshaler runt
 	handleForwardResponseTrailer(w, md)
 }
 
+// DefaultHTTPErrorCustomCodes set custom error codes for DefaultHTTPError
+func DefaultHTTPErrorCustomCodes(codeErrors map[int32]string) {
+	for code, errorMsg := range codeErrors {
+		codesErrors[codes.Code(code)] = errorMsg
+	}
+}
+
 type errorBody struct {
 	Error            string     `protobuf:"bytes,1,name=error" json:"error"`
 	ErrorDescription string     `protobuf:"bytes,1,name=error_description" json:"error_description"`
@@ -225,36 +232,35 @@ func handleForwardResponseTrailer(w http.ResponseWriter, md runtime.ServerMetada
 	}
 }
 
-// CodesErrors some erorrs string for grpc codes
-var CodesErrors = map[codes.Code]string{
-	codes.OK:                 "OK",
-	codes.Canceled:           "CANCELED",
-	codes.Unknown:            "UNKNOWN",
-	codes.InvalidArgument:    "INVALID_ARGUMENT",
-	codes.DeadlineExceeded:   "DEADLINE_EXCEEDED",
-	codes.NotFound:           "NOT_FOUND",
-	codes.AlreadyExists:      "ALREADY_EXISTS",
-	codes.PermissionDenied:   "PERMISSION_DENIED",
-	codes.ResourceExhausted:  "RESOURCE_EXHAUSTED",
-	codes.FailedPrecondition: "FAILED_PRECONDITION",
-	codes.Aborted:            "ABORTED",
-	codes.OutOfRange:         "OUT_OF_RANGE",
-	codes.Unimplemented:      "UNIMPLEMENTED",
-	codes.Internal:           "INTERNAL",
-	codes.Unavailable:        "UNAVAILABLE",
-	codes.DataLoss:           "DATA_LOSS",
-	codes.Unauthenticated:    "UNAUTHENTICATED",
+// codesErrors some erorrs string for grpc codes
+var codesErrors = map[codes.Code]string{
+	codes.OK:                 "ok",
+	codes.Canceled:           "canceled",
+	codes.Unknown:            "unknown",
+	codes.InvalidArgument:    "invalid_argument",
+	codes.DeadlineExceeded:   "deadline_exceeded",
+	codes.NotFound:           "not_found",
+	codes.AlreadyExists:      "already_exists",
+	codes.PermissionDenied:   "permission_denied",
+	codes.ResourceExhausted:  "resource_exhausted",
+	codes.FailedPrecondition: "failed_precondition",
+	codes.Aborted:            "aborted",
+	codes.OutOfRange:         "out_of_range",
+	codes.Unimplemented:      "unimplemented",
+	codes.Internal:           "internal",
+	codes.Unavailable:        "unavailable",
+	codes.DataLoss:           "data_loss",
+	codes.Unauthenticated:    "unauthenticated",
 }
 
 // CodeToError translate grpc codes to error
 func CodeToError(c codes.Code) string {
-	errStr, ok := CodesErrors[c]
+	errStr, ok := codesErrors[c]
 	if ok {
 		return errStr
 	}
 	return strconv.FormatInt(int64(c), 10)
 }
-
 // httpStatusCode the 2xxx is 200, the 4xxx is 400, the 5xxx is 500
 func httpStatusCode(code codes.Code) (status int) {
 	for code >= 10 {
