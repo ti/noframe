@@ -3,7 +3,6 @@ package config
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"reflect"
 	"sort"
 	"strconv"
@@ -355,10 +354,6 @@ func unmarshalKVStructToJson(key string, target interface{}, kvs []*KV) (js stri
 		fValue := kv.Value
 		if len(fValue) == 0 {
 			continue
-		}
-		firstChar := fValue[0]
-		if !(firstChar == '{' || firstChar == '[') {
-			fValue = fmt.Sprintf(`"%s"`, fValue)
 		}
 		if fKey == key {
 			parts = append(parts, fValue[1:len(fValue)-1])
