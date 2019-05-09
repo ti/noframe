@@ -153,7 +153,7 @@ func (e *etcdBackend) watch(ctx context.Context, rootKey string, keys []string) 
 		go e.onEtcdWatch(ctx, keys, wc)
 	}
 	var opts []clientv3.OpOption
-	if len(watchRootKeys) > 1 {
+	if len(watchRootKeys) > 1 || strings.HasSuffix(e.url.Path, "/") {
 		opts = append(opts, clientv3.WithPrefix())
 	}
 	wc := client.Watch(ctx, e.url.Path, opts...)
