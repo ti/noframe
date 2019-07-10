@@ -192,9 +192,9 @@ func DefaultHTTPErrorCustomCodes(codeErrors map[int32]string) {
 }
 
 type errorBody struct {
-	Error            string     `protobuf:"bytes,1,name=error" json:"error"`
-	ErrorDescription string     `protobuf:"bytes,1,name=error_description" json:"error_description"`
-	Details          []*any.Any `protobuf:"bytes,3,rep,name=details" json:"details,omitempty"`
+	Error            string     `json:"error"`
+	ErrorDescription string     `json:"error_description"`
+	Details          []*any.Any `json:"details,omitempty"`
 }
 
 // Make this also conform to proto.Message for builtin JSONPb Marshaler
@@ -261,6 +261,7 @@ func CodeToError(c codes.Code) string {
 	}
 	return strconv.FormatInt(int64(c), 10)
 }
+
 // httpStatusCode the 2xxx is 200, the 4xxx is 400, the 5xxx is 500
 func httpStatusCode(code codes.Code) (status int) {
 	for code >= 10 {
