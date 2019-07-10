@@ -141,9 +141,18 @@ func DefaultHTTPError(ctx context.Context, mux *runtime.ServeMux, marshaler runt
 }
 
 // SetCustomErrorCodes set custom error codes for DefaultHTTPError
+// the map[int32]string is compact to protobuf's ENMU_name
 // 2*** HTTP status 200
 // 4*** HTTP status 400
 // 5*** AND other HTTP status 500
+// For exp:
+// in proto
+// enum CommonError {
+//	captcha_required = 4001;
+//	invalid_captcha = 4002;
+// }
+// in code
+// grpcmux.SetCustomErrorCodes(common.CommonError_name)
 func SetCustomErrorCodes(codeErrors map[int32]string) {
 	for code, errorMsg := range codeErrors {
 		codesErrors[codes.Code(code)] = errorMsg
