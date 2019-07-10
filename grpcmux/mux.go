@@ -60,16 +60,7 @@ const xForwardedHost = "x-forwarded-host"
 func annotateMetadata(req *http.Request) metadata.MD {
 	md := make(metadata.MD)
 	for key, vals := range req.Header {
-		if key == "Authorization" || strings.HasPrefix(key, "X-") {
-			md[strings.ToLower(key)] = vals
-		} else {
-			key = textproto.CanonicalMIMEHeaderKey(key)
-			if isPermanentHTTPHeader(key) {
-				md[runtime.MetadataPrefix+key] = vals
-			} else if strings.HasPrefix(key, runtime.MetadataHeaderPrefix) {
-				md[key[lenMetadataHeaderPrefix:]] = vals
-			}
-		}
+		md[strings.ToLower(key)] = vals
 	}
 	if len(md[xForwardedHost]) == 0 && req.Host != "" {
 		md[xForwardedHost] = []string{req.Host}
@@ -95,41 +86,6 @@ func parsePatternURL(path string) (runtime.Pattern, error) {
 	}
 	tp := compiler.Compile()
 	return runtime.NewPattern(tp.Version, tp.OpCodes, tp.Pool, tp.Verb)
-}
-
-// isPermanentHTTPHeader checks whether hdr belongs to the list of
-// permanent request headers maintained by IANA.
-// http://www.iana.org/assignments/message-headers/message-headers.xml
-func isPermanentHTTPHeader(hdr string) bool {
-	switch hdr {
-	case
-		"Accept",
-		"Accept-Charset",
-		"Accept-Language",
-		"Accept-Ranges",
-		"Authorization",
-		"Cache-Control",
-		"Content-Type",
-		"Cookie",
-		"Date",
-		"Expect",
-		"From",
-		"Host",
-		"If-Match",
-		"If-Modified-Since",
-		"If-None-Match",
-		"If-Schedule-Tag-Match",
-		"If-Unmodified-Since",
-		"Max-Forwards",
-		"Origin",
-		"Pragma",
-		"Referer",
-		"User-Agent",
-		"Via",
-		"Warning":
-		return true
-	}
-	return false
 }
 
 // DefaultHTTPError is the default implementation of HTTPError.
@@ -184,17 +140,25 @@ func DefaultHTTPError(ctx context.Context, mux *runtime.ServeMux, marshaler runt
 	handleForwardResponseTrailer(w, md)
 }
 
-// DefaultHTTPErrorCustomCodes set custom error codes for DefaultHTTPError
-func DefaultHTTPErrorCustomCodes(codeErrors map[int32]string) {
+// SetCustomErrorCodes set custom error codes for DefaultHTTPError
+// 2*** HTTP status 200
+// 4*** HTTP status 400
+// 5*** AND other HTTP status 500
+func SetCustomErrorCodes(codeErrors map[int32]string) {
 	for code, errorMsg := range codeErrors {
 		codesErrors[codes.Code(code)] = errorMsg
 	}
 }
 
+// This is to make the error more compatible with users that expect errors to be Status objects:
+// https://github.com/grpc/grpc/blob/master/src/proto/grpc/status/status.proto
+// AND
+// https://tools.ietf.org/html/rfc6749#section-5.2
+// It should be the exact same error_description as the Error field.
 type errorBody struct {
-	Error            string     `json:"error"`
-	ErrorDescription string     `json:"error_description"`
-	Details          []*any.Any `json:"details,omitempty"`
+	Error            string     `protobuf:"bytes,1,name=error" json:"error"`
+	ErrorDescription string     `protobuf:"bytes,1,name=error_description" json:"error_description"`
+	Details          []*any.Any `protobuf:"bytes,2,rep,name=details" json:"details,omitempty"`
 }
 
 // Make this also conform to proto.Message for builtin JSONPb Marshaler
