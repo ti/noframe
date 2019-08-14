@@ -44,6 +44,10 @@ type MuxedGrpc struct {
 
 //ServeHTTP add ctx from http request
 func (s *ServeMux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	if m := req.Header.Get("_method"); m != "" {
+		req.Method = m
+		delete(req.Header, "_method")
+	}
 	md := annotateMetadata(req)
 	ctx := metadata.NewIncomingContext(req.Context(), md)
 	ctx = context.WithValue(ctx, MuxedGrpc{}, true)
