@@ -44,9 +44,9 @@ type MuxedGrpc struct {
 
 //ServeHTTP add ctx from http request
 func (s *ServeMux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	if m := req.Header.Get("X-Http-Method"); m != "" {
+	if m := req.Header.Get("X-Http-Method-Override"); m != "" {
 		req.Method = m
-		delete(req.Header, "X-Http-Method")
+		delete(req.Header, "X-Http-Method-Override")
 	}
 	md := annotateMetadata(req)
 	ctx := metadata.NewIncomingContext(req.Context(), md)
