@@ -105,7 +105,11 @@ func DefaultHTTPError(ctx context.Context, mux *runtime.ServeMux, marshaler runt
 
 	s, ok := status.FromError(err)
 	if !ok {
-		s = status.New(codes.Unknown, err.Error())
+		if err == context.Canceled {
+			s = status.New(codes.Canceled, "client " + err.Error())
+		} else {
+			s = status.New(codes.Unknown, err.Error())
+		}
 	}
 	code := s.Code()
 	body := &errorBody{
