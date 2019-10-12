@@ -48,14 +48,17 @@ func (s *ServeMux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		req.Method = m
 		delete(req.Header, "X-Http-Method-Override")
 	}
+	timeout := runtime.DefaultContextTimeout
+	cancelCtx, cancel := context.WithCancel(req.Context())
+	defer cancel()
 	md := annotateMetadata(req)
-	ctx := metadata.NewIncomingContext(req.Context(), md)
-	ctx = context.WithValue(ctx, MuxedGrpc{}, true)
-	req = req.WithContext(ctx)
-	s.ServeMux.ServeHTTP(w, req.WithContext(ctx))
+	rctx := metadata.NewIncomingContext(cancelCtx, md)
+	rctx = context.WithValue(rctx, MuxedGrpc{}, true)
+	if timeout != 0 {
+		rctx, _ = context.WithTimeout(rctx, timeout)
+	}
+	s.ServeMux.ServeHTTP(w, req.WithContext(rctx))
 }
-
-var lenMetadataHeaderPrefix = len(runtime.MetadataHeaderPrefix)
 
 const xForwardedFor = "x-forwarded-for"
 const xForwardedHost = "x-forwarded-host"
@@ -105,8 +108,10 @@ func DefaultHTTPError(ctx context.Context, mux *runtime.ServeMux, marshaler runt
 
 	s, ok := status.FromError(err)
 	if !ok {
-		if err == context.Canceled {
-			s = status.New(codes.Canceled, "client " + err.Error())
+		if err == context.DeadlineExceeded {
+			s = status.New(codes.Canceled, "server "+err.Error())
+		} else if err == context.Canceled {
+			s = status.New(codes.Canceled, "client "+err.Error())
 		} else {
 			s = status.New(codes.Unknown, err.Error())
 		}
@@ -131,7 +136,6 @@ func DefaultHTTPError(ctx context.Context, mux *runtime.ServeMux, marshaler runt
 	if !ok {
 		grpclog.Infof("Failed to extract ServerMetadata from context")
 	}
-
 	handleForwardResponseServerMetadata(w, mux, md)
 	handleForwardResponseTrailerHeader(w, md)
 	st := int(code)
@@ -187,7 +191,7 @@ var defaultOutgoingHeaderMatcher = func(key string) (string, bool) {
 	return fmt.Sprintf("%s%s", runtime.MetadataHeaderPrefix, key), true
 }
 
-func handleForwardResponseServerMetadata(w http.ResponseWriter, mux *runtime.ServeMux, md runtime.ServerMetadata) {
+func handleForwardResponseServerMetadata(w http.ResponseWriter, _ *runtime.ServeMux, md runtime.ServerMetadata) {
 	for k, vs := range md.HeaderMD {
 		if h, ok := defaultOutgoingHeaderMatcher(k); ok {
 			for _, v := range vs {
