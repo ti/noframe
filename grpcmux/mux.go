@@ -83,6 +83,8 @@ func annotateMetadata(req *http.Request) metadata.MD {
 			grpclog.Infof("invalid remote addr: %s", addr)
 		}
 	}
+	md["x-request-path"] = []string{req.URL.Path}
+	md["x-request-method"] = []string{req.Method}
 	return md
 }
 
@@ -217,7 +219,7 @@ func handleForwardResponseTrailer(w http.ResponseWriter, md runtime.ServerMetada
 	}
 }
 
-// codesErrors some erorrs string for grpc codes
+// codesErrors some errors string for grpc codes
 var codesErrors = map[codes.Code]string{
 	codes.OK:                 "ok",
 	codes.Canceled:           "canceled",
@@ -249,6 +251,10 @@ func CodeToError(c codes.Code) string {
 
 // httpStatusCode the 2xxx is 200, the 4xxx is 400, the 5xxx is 500
 func httpStatusCode(code codes.Code) (status int) {
+	// http status codes can be error codes
+	if code >= 200 && code < 599 {
+		return int(code)
+	}
 	for code >= 10 {
 		code = code / 10
 	}
