@@ -31,7 +31,7 @@ var defaultConfig = Config{
 
 func main() {
 	config := &defaultConfig
-	err := cfg.Init(cfg.URL("file://demo/etcd/config.json?ttl=3s"), cfg.WithDefault(config))
+	err := cfg.Init(cfg.URL("file://demo/etcd/config.json"), cfg.WithDefault(config))
 	if err != nil {
 		panic(err)
 	}

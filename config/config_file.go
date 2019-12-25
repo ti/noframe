@@ -106,14 +106,15 @@ func (f *fileBackend) watch(ctx context.Context, rootKey string, keys []string) 
 				if !ok {
 					return
 				}
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					err = f.reloadFile()
-					if err != nil {
-						l.Error(err)
-						return
-					}
-					f.onLoaded(f.instance)
+				if event.Op == fsnotify.Chmod {
+					return
 				}
+				err = f.reloadFile()
+				if err != nil {
+					l.Error(err)
+					return
+				}
+				f.onLoaded(f.instance)
 			case err, ok := <-watcher.Errors:
 				if !ok {
 					return
