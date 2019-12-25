@@ -2,10 +2,8 @@ package config
 
 import (
 	"context"
-	"log"
 	"net/url"
 	"reflect"
-	"strconv"
 	"time"
 )
 
@@ -42,31 +40,26 @@ func URL(uri string) Option {
 		}
 		o.URL = uri
 		o.scheme = u.Scheme
-		if o.scheme == fileScheme || o.scheme == "" {
-			return
-		}
 		//default config
 		o.Timeout = 30 * time.Second
 		o.ReloadDelay = time.Hour
 		o.Watch = true
-		//load config by url
-		if ttl, _ := strconv.Atoi(u.Query().Get("ttl")); ttl != 0 {
-			if ttl < 0 {
-				o.ReloadDelay = 0
-			} else {
-				o.ReloadDelay = time.Second * time.Duration(ttl)
-				if ttl <= 60 {
+		if t := u.Query().Get("ttl"); t != "" {
+			if td, err := time.ParseDuration(t); err == nil {
+				o.ReloadDelay = td
+				if td <= 2*time.Second {
 					o.Watch = false
 				}
-				log.Println("watch?", o.Watch)
 			}
 		}
+
 		if w := u.Query().Get("watch"); w != "" {
 			o.Watch = !(w == "false")
 		}
 		if t := u.Query().Get("timeout"); t != "" {
-			timeout, _ := strconv.Atoi(t)
-			o.Timeout = time.Second * time.Duration(timeout)
+			if td, err := time.ParseDuration(t); err == nil {
+				o.Timeout = td
+			}
 		}
 		o.scheme = u.Scheme
 	}

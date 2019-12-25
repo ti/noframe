@@ -45,13 +45,12 @@ func (c *Config) Init(opts ...Option) error {
 	}
 	var backend Backend
 	if options.scheme == "" {
-		backend = &fileBackend{path: options.URL}
-	} else {
-		var ok bool
-		backend, ok = c.backEnds[options.scheme]
-		if !ok {
-			return fmt.Errorf("[%s] is not a valid backend url", options.URL)
-		}
+		options.scheme = fileScheme
+	}
+	var ok bool
+	backend, ok = c.backEnds[options.scheme]
+	if !ok {
+		return fmt.Errorf("[%s] is not a valid backend url", options.URL)
 	}
 	options.OnLoaded = c.onReloaded
 	if err := backend.LoadConfig(options); err != nil {
@@ -60,7 +59,6 @@ func (c *Config) Init(opts ...Option) error {
 	if options.ReloadDelay > time.Second {
 		go func() {
 			for {
-
 				// Delay after each request
 				<-time.After(options.ReloadDelay)
 				// Attempt to reload the config

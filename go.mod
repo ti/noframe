@@ -1,6 +1,7 @@
 module github.com/ti/noframe
 
 require (
+	github.com/fsnotify/fsnotify v1.4.8-0.20191012010759-4bf2d1fec783 // indirect
 	github.com/gogo/protobuf v1.3.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
 	github.com/grpc-ecosystem/grpc-gateway v1.11.3
@@ -11,6 +12,6 @@ require (
 	gopkg.in/yaml.v2 v2.2.4
 )
 
-replace (
-	golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7 => github.com/golang/crypto v0.0.0-20190911031432-227b76d455e7
-)
+replace golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7 => github.com/golang/crypto v0.0.0-20190911031432-227b76d455e7
+
+go 1.13

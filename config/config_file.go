@@ -1,8 +1,11 @@
 package config
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/fsnotify/fsnotify"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net/url"
@@ -10,10 +13,31 @@ import (
 	"path/filepath"
 )
 
+// FileScheme the sheme for file
 const fileScheme = "file"
 
 type fileBackend struct {
-	path string
+	path     string
+	instance interface{}
+	onLoaded OnLoaded
+	loaded   bool
+}
+
+func init() {
+	AddBackend(fileScheme, &fileBackend{})
+}
+
+func (f *fileBackend) reloadFile() error {
+	bytes, err := ioutil.ReadFile(f.path)
+	if err != nil {
+		return err
+	}
+	ext := filepath.Ext(f.path)
+	err = unmarshal(bytes, f.instance, ext)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // LoadConfig get config from file
@@ -22,14 +46,17 @@ func (f *fileBackend) LoadConfig(o Options) error {
 		//this should not be happen
 		panic("default config can not be nil")
 	}
+	u, err := url.Parse(o.URL)
+	if err != nil {
+		return err
+	}
 	if f.path == "" {
-		u, err := url.Parse(o.URL)
-		if err != nil {
-			return err
-		}
 		f.path = u.Host + u.Path
 	}
-	config := o.DefaultConfig
+	f.instance = o.DefaultConfig
+	f.onLoaded = o.OnLoaded
+
+	cfg := o.DefaultConfig
 	ext := filepath.Ext(f.path)
 	bytes, err := ioutil.ReadFile(f.path)
 	if err != nil {
@@ -45,19 +72,61 @@ func (f *fileBackend) LoadConfig(o Options) error {
 				return fmt.Errorf("try to open file %s, try to mkdir %s,  error %s", err, f.path, mkdirError)
 			}
 		}
-		if writeErr := ioutil.WriteFile(f.path, marshal(config, ext), os.FileMode(0700)); writeErr != nil {
+		if writeErr := ioutil.WriteFile(f.path, marshal(cfg, ext), os.FileMode(0700)); writeErr != nil {
 			return fmt.Errorf("try to open file %s, try to write default config config file rror %s", err, writeErr)
 		}
-		o.OnLoaded(config)
+		o.OnLoaded(cfg)
 		return nil
 	}
-
-	err = unmarshal(bytes, config, ext)
+	err = unmarshal(bytes, cfg, ext)
 	if err != nil {
 		return err
 	}
-	o.OnLoaded(config)
+	prefixKeys := GetPrefixKeys(f.path, o.DefaultConfig)
+	if o.Watch && !f.loaded {
+		go f.watch(context.Background(), f.path, prefixKeys)
+	}
+	f.loaded = true
+	o.OnLoaded(cfg)
 	return nil
+}
+
+func (f *fileBackend) watch(ctx context.Context, rootKey string, keys []string) {
+	watcher, err := fsnotify.NewWatcher()
+	l := log.WithField("action", "watch_file").WithField("root", rootKey)
+	if err != nil {
+		l.Error("watch file %s error ", rootKey, err)
+	}
+	defer watcher.Close()
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+				if event.Op&fsnotify.Write == fsnotify.Write {
+					err = f.reloadFile()
+					if err != nil {
+						l.Error(err)
+						return
+					}
+					f.onLoaded(f.instance)
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				l.Error(err)
+			}
+		}
+	}()
+	err = watcher.Add(rootKey)
+	if err != nil {
+		panic(err)
+	}
+	<-done
 }
 
 func marshal(v interface{}, ext string) (ret []byte) {
