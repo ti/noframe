@@ -9,7 +9,7 @@ require (
 	go.etcd.io/etcd v0.0.0-20190917205325-a14579fbfb1a
 	google.golang.org/genproto v0.0.0-20190916214212-f660b8655731
 	google.golang.org/grpc v1.24.0
-	gopkg.in/yaml.v2 v2.2.4
+	gopkg.in/yaml.v3 v3.0.0-20191120175047-4206685974f2 // indirect
 )
 
 replace golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7 => github.com/golang/crypto v0.0.0-20190911031432-227b76d455e7
