@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/httprule"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"google.golang.org/grpc/codes"
@@ -119,10 +119,22 @@ func DefaultHTTPError(ctx context.Context, mux *runtime.ServeMux, marshaler runt
 		}
 	}
 	code := s.Code()
+
+	var details []interface{}
+	for _, v := range s.Proto().GetDetails() {
+		var d ptypes.DynamicAny
+		err := ptypes.UnmarshalAny(v, &d)
+		if err != nil {
+			details = append(details, v)
+		} else {
+			details = append(details, d.Message)
+		}
+	}
+
 	body := &errorBody{
 		Error:            CodeToError(code),
 		ErrorDescription: s.Message(),
-		Details:          s.Proto().GetDetails(),
+		Details:          details,
 	}
 	buf, merr := marshaler.Marshal(body)
 	if merr != nil {
@@ -179,9 +191,9 @@ func SetCustomErrorCodes(codeErrors map[int32]string) {
 // https://tools.ietf.org/html/rfc6749#section-5.2
 // It should be the exact same error_description as the Error field.
 type errorBody struct {
-	Error            string     `protobuf:"bytes,1,name=error" json:"error"`
-	ErrorDescription string     `protobuf:"bytes,1,name=error_description" json:"error_description"`
-	Details          []*any.Any `protobuf:"bytes,2,rep,name=details" json:"details,omitempty"`
+	Error            string        `protobuf:"bytes,1,name=error" json:"error"`
+	ErrorDescription string        `protobuf:"bytes,1,name=error_description" json:"error_description,omitempty"`
+	Details          []interface{} `json:"details,omitempty"`
 }
 
 // Make this also conform to proto.Message for builtin JSONPb Marshaler
