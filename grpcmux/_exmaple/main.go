@@ -82,6 +82,14 @@ func (h *sayServer) Errors(ctx context.Context, in *empty.Empty) (*empty.Empty, 
 				"second stack",
 			},
 		},
+		&errdetails.BadRequest{
+			FieldViolations: []*errdetails.BadRequest_FieldViolation{
+				{
+					Field:       "name",
+					Description: "name is required",
+				},
+			},
+		},
 		&errdetails.RequestInfo{
 			RequestId:   "12125454",
 			ServingData: "yyyy",
