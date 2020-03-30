@@ -107,7 +107,7 @@ func (f *fileBackend) watch(ctx context.Context, rootKey string, keys []string) 
 					return
 				}
 				if event.Op == fsnotify.Chmod {
-					return
+					continue
 				}
 				err = f.reloadFile()
 				if err != nil {
