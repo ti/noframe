@@ -171,12 +171,6 @@ func DefaultHTTPError(ctx context.Context, mux *runtime.ServeMux, marshaler runt
 	handleForwardResponseTrailer(w, md)
 }
 
-// responseBody interface contains method for getting field for marshaling to the response body
-// this method is generated for response struct from the value of `response_body` in the `google.api.HttpRule`
-type responseBody interface {
-	XXX_ResponseBody() interface{}
-}
-
 // SetCustomErrorCodes set custom error codes for DefaultHTTPError
 // the map[int32]string is compact to protobuf's ENMU_name
 // 2*** HTTP status 200
