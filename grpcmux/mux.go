@@ -1,10 +1,10 @@
 package grpcmux
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/httprule"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"google.golang.org/grpc/codes"
@@ -120,22 +120,19 @@ func DefaultHTTPError(ctx context.Context, mux *runtime.ServeMux, marshaler runt
 	}
 	code := s.Code()
 
-	var details []interface{}
-	for _, v := range s.Proto().GetDetails() {
-		var d ptypes.DynamicAny
-		err := ptypes.UnmarshalAny(v, &d)
-		if err != nil {
-			details = append(details, v)
-		} else {
-			details = append(details, d.Message)
-		}
-	}
-
 	body := &errorBody{
 		Error:            CodeToError(code),
 		ErrorDescription: s.Message(),
-		Details:          details,
 	}
+
+	var detailsJSON [][]byte
+	for _, v := range s.Details() {
+		b, err := marshaler.Marshal(v)
+		if err == nil && len(b) > 2 {
+			detailsJSON = append(detailsJSON, b)
+		}
+	}
+
 	buf, merr := marshaler.Marshal(body)
 	if merr != nil {
 		grpclog.Infof("Failed to marshal error message %q: %v", body, merr)
@@ -145,11 +142,19 @@ func DefaultHTTPError(ctx context.Context, mux *runtime.ServeMux, marshaler runt
 		}
 		return
 	}
+	if len(detailsJSON) > 0 {
+		buf = buf[0 : len(buf)-1]
+		buf = append(buf, []byte(`,"details":[`)...)
+		details := bytes.Join(detailsJSON, []byte(","))
+		buf = append(buf, details...)
+		buf = append(buf, []byte(`]}`)...)
+	}
 
 	md, ok := runtime.ServerMetadataFromContext(ctx)
 	if !ok {
 		grpclog.Infof("Failed to extract ServerMetadata from context")
 	}
+
 	handleForwardResponseServerMetadata(w, mux, md)
 	handleForwardResponseTrailerHeader(w, md)
 	st := int(code)
@@ -164,6 +169,12 @@ func DefaultHTTPError(ctx context.Context, mux *runtime.ServeMux, marshaler runt
 	}
 
 	handleForwardResponseTrailer(w, md)
+}
+
+// responseBody interface contains method for getting field for marshaling to the response body
+// this method is generated for response struct from the value of `response_body` in the `google.api.HttpRule`
+type responseBody interface {
+	XXX_ResponseBody() interface{}
 }
 
 // SetCustomErrorCodes set custom error codes for DefaultHTTPError
@@ -191,9 +202,8 @@ func SetCustomErrorCodes(codeErrors map[int32]string) {
 // https://tools.ietf.org/html/rfc6749#section-5.2
 // It should be the exact same error_description as the Error field.
 type errorBody struct {
-	Error            string        `protobuf:"bytes,1,name=error" json:"error"`
-	ErrorDescription string        `protobuf:"bytes,1,name=error_description" json:"error_description,omitempty"`
-	Details          []interface{} `protobuf:"bytes,1,name=details" json:"details,omitempty"`
+	Error            string `protobuf:"bytes,1,name=error" json:"error"`
+	ErrorDescription string `protobuf:"bytes,1,name=error_description" json:"error_description,omitempty"`
 }
 
 // Make this also conform to proto.Message for builtin JSONPb Marshaler
