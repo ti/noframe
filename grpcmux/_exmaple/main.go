@@ -10,9 +10,9 @@ import (
 	"google.golang.org/grpc/status"
 	"net/http"
 
+	"context"
 	"fmt"
-	"github.com/ti/noframe/grpcmux/_exmaple/pb"
-	"golang.org/x/net/context"
+	pb "github.com/ti/noframe/grpcmux/_exmaple/pkg/go"
 	"google.golang.org/grpc"
 	"log"
 	"net"
@@ -23,7 +23,7 @@ func main() {
 	go func() {
 		mux := grpcmux.NewServeMux()
 		//Handle grpc form /v1/greeter/hello/{id}
-		pb.RegisterSayServerHandlerClient(context.TODO(), mux.ServeMux, srv)
+		_ = pb.RegisterSayHandlerServer(context.TODO(), mux.ServeMux, srv)
 		//Handle common http
 		mux.Handle(http.MethodGet, "/v1/home/{id}/users", users)
 		log.Println("lis http on  8080")
@@ -51,6 +51,7 @@ func (h *sayServer) Hello(ctx context.Context, req *pb.Request) (*pb.Response, e
 	return &pb.Response{
 		Msg:  fmt.Sprintf("hello %d", req.Id),
 		Type: pb.Type_IMAGES,
+		IsSuccess: true,
 	}, nil
 }
 

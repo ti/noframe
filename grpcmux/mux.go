@@ -197,7 +197,7 @@ func SetCustomErrorCodes(codeErrors map[int32]string) {
 // It should be the exact same error_description as the Error field.
 type errorBody struct {
 	Error            string `protobuf:"bytes,1,name=error" json:"error"`
-	ErrorDescription string `protobuf:"bytes,1,name=error_description" json:"error_description,omitempty"`
+	ErrorDescription string `protobuf:"bytes,2,name=error_description" json:"error_description,omitempty"`
 }
 
 // Make this also conform to proto.Message for builtin JSONPb Marshaler

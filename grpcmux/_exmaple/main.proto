@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package pb;
 
+option go_package = ".;pb";
+
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
 
@@ -45,6 +47,7 @@ message Request {
 message Response {
     string msg = 1;
     Type type = 2;
+    bool is_success = 3;
 }
 
 message Data {
