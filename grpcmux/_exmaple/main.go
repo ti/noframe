@@ -49,8 +49,8 @@ type sayServer struct{}
 
 func (h *sayServer) Hello(ctx context.Context, req *pb.Request) (*pb.Response, error) {
 	return &pb.Response{
-		Msg:  fmt.Sprintf("hello %d", req.Id),
-		Type: pb.Type_IMAGES,
+		Msg:       fmt.Sprintf("hello %d", req.Id),
+		Type:      pb.Type_IMAGES,
 		IsSuccess: true,
 	}, nil
 }
@@ -69,7 +69,7 @@ func (h *sayServer) Any(ctx context.Context, in *pb.Data) (*pb.Data, error) {
 }
 
 func (h *sayServer) Errors(ctx context.Context, in *empty.Empty) (*empty.Empty, error) {
-	e, _ := status.New(codes.Canceled, "canceled").WithDetails(&errdetails.ResourceInfo{
+	e, _ := status.New(codes.Canceled, "test canceled").WithDetails(&errdetails.ResourceInfo{
 		ResourceType: "book",
 		ResourceName: "projects/1234/books/5678",
 		Owner:        "User",
