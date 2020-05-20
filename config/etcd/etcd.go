@@ -3,15 +3,15 @@ package etcd
 import (
 	"context"
 	"fmt"
-	"go.etcd.io/etcd/mvcc/mvccpb"
+	"go.etcd.io/etcd/v3/mvcc/mvccpb"
 	"net/url"
 	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/ti/noframe/config"
-	"go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/pkg/transport"
+	"go.etcd.io/etcd/v3/clientv3"
+	"go.etcd.io/etcd/v3/pkg/transport"
 )
 
 type etcdBackend struct {
