@@ -50,10 +50,30 @@ func (s *ServeMux) Handle(method string, path string, h runtime.HandlerFunc) {
 type MuxedGrpc struct {
 }
 
+// Validate by the contxt
+func Validate(ctx context.Context, req interface{}) error  {
+	// only from grpc mux http validate, or use grpc millde ware
+	muxed, ok := ctx.Value(MuxedGrpc{}).(bool)
+	if !ok || !muxed {
+		return nil
+	}
+	if v, ok := req.(validator); ok {
+		if err := v.Validate(); err != nil {
+			return status.Errorf(codes.InvalidArgument, err.Error())
+		}
+	}
+	return nil
+}
+
+type validator interface {
+	Validate() error
+}
+
 //ServeHTTP add ctx from http request
 func (s *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.Header.Set("x-request-path", r.URL.Path)
 	r.Header.Set("x-request-method", r.Method)
+	r = r.WithContext(context.WithValue(r.Context(), MuxedGrpc{}, true))
 	s.ServeMux.ServeHTTP(w, r)
 }
 

@@ -1,21 +1,22 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/empty"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	"github.com/grpc-ecosystem/go-grpc-middleware/validator"
+	"github.com/ti/noframe/grpcmux"
+	pb "github.com/ti/noframe/grpcmux/_exmaple/pkg/go"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"net/http"
-
-	"context"
-	"fmt"
-	"github.com/ti/noframe/grpcmux"
-	"google.golang.org/grpc"
 	"log"
 	"net"
-	pb "ztest.com/testxx/pkg/go"
+	"net/http"
 )
 
 func main() {
@@ -42,7 +43,15 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	gs := grpc.NewServer()
+	grpcOpts := []grpc.ServerOption{
+		grpc_middleware.WithUnaryServerChain(
+			grpc_validator.UnaryServerInterceptor(),
+		),
+		grpc_middleware.WithStreamServerChain(
+			grpc_validator.StreamServerInterceptor(),
+		),
+	}
+	gs := grpc.NewServer(grpcOpts...)
 	pb.RegisterSayServer(gs, srv)
 	gs.Serve(lis)
 }
@@ -56,9 +65,9 @@ type sayServer struct{
 }
 
 func (h *sayServer) Hello(ctx context.Context, req *pb.Request) (*pb.Response, error) {
-	err := req.Validate()
+	err := grpcmux.Validate(ctx, req)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+		return nil, err
 	}
 	return &pb.Response{
 		Msg:       fmt.Sprintf("hello %d", req.Id),

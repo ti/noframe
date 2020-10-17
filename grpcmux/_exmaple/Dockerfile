@@ -1,10 +1,10 @@
-FROM golang:1.15
-ADD . $GOPATH/src/github.com/ti/noframe/grpcmux/_exmaple
-WORKDIR $GOPATH/src/github.com/ti/noframe/grpcmux/_exmaple
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/main .
-
-FROM scratch
-WORKDIR /app
-COPY --from=0 /app/main .
-CMD ["/app/main"]
-EXPOSE 8080 8081
+FROM nanxi/protoc:go
+CMD ["protoc","-I", ".", "--proto_path=/usr/include",  \
+  "--go_out","../go","--go_opt","paths=source_relative",  \
+  "--go-grpc_out","../go","--go-grpc_opt","paths=source_relative",  \
+  "--grpc-gateway_out","../go","--grpc-gateway_opt","logtostderr=true",  \
+  "--grpc-gateway_opt","paths=source_relative","--grpc-gateway_opt","generate_unbound_methods=true",  \
+  "--validate_out=lang=go,paths=source_relative:../go",  \
+  "--openapiv2_out","../openapi","--openapiv2_opt","logtostderr=true", \
+  "./*.proto" \
+]
