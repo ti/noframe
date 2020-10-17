@@ -1,4 +1,4 @@
-FROM golang:1.10.3
+FROM golang:1.15
 ADD . $GOPATH/src/github.com/ti/noframe/grpcmux/_exmaple
 WORKDIR $GOPATH/src/github.com/ti/noframe/grpcmux/_exmaple
 RUN CGO_ENABLED=0 GOOS=linux go build -o /app/main .

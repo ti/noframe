@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/ti/noframe/grpcmux"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -12,26 +11,33 @@ import (
 
 	"context"
 	"fmt"
-	pb "github.com/ti/noframe/grpcmux/_exmaple/pkg/go"
+	"github.com/ti/noframe/grpcmux"
 	"google.golang.org/grpc"
 	"log"
 	"net"
+	pb "ztest.com/testxx/pkg/go"
 )
 
 func main() {
 	srv := &sayServer{}
+	ctx := context.Background()
 	go func() {
 		mux := grpcmux.NewServeMux()
-		//Handle grpc form /v1/greeter/hello/{id}
-		_ = pb.RegisterSayHandlerServer(context.TODO(), mux.ServeMux, srv)
-		//Handle common http
-		mux.Handle(http.MethodGet, "/v1/home/{id}/users", users)
-		log.Println("lis http on  8080")
-		//then try http://127.0.0.1:8080/v1/greeter/hello/12
-		panic(http.ListenAndServe(":8080", mux))
+		// Register generated routes to http mux
+		err := pb.RegisterSayHandlerServer(ctx, mux.ServeMux, srv)
+		if err != nil {
+			panic(err)
+		}
+		// Register custom route
+		mux.Handle(http.MethodGet, "/v1/home/{id}/users",users)
+		log.Println("listen http on 8080")
+		err = http.ListenAndServe(":8080", mux)
+		if err != nil {
+			panic(err)
+		}
 	}()
 
-	log.Println("lis grpc on 8081")
+	log.Println("listen grpc on 8081")
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 8081))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -45,9 +51,15 @@ func users(w http.ResponseWriter, r *http.Request, pathParams map[string]string)
 	w.Write([]byte(pathParams["id"]))
 }
 
-type sayServer struct{}
+type sayServer struct{
+	pb.UnimplementedSayServer
+}
 
 func (h *sayServer) Hello(ctx context.Context, req *pb.Request) (*pb.Response, error) {
+	err := req.Validate()
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
 	return &pb.Response{
 		Msg:       fmt.Sprintf("hello %d", req.Id),
 		Type:      pb.Type_IMAGES,

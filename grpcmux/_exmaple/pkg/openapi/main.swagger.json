@@ -22,9 +22,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -54,9 +54,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -76,9 +76,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -88,46 +88,6 @@
             "in": "path",
             "required": true,
             "type": "integer",
-            "format": "int64"
-          },
-          {
-            "name": "name",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "age",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          },
-          {
-            "name": "type",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "enum": [
-              "UNIVERSAL",
-              "WEB",
-              "IMAGES",
-              "LOCAL"
-            ],
-            "default": "UNIVERSAL"
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int64"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "type": "string",
             "format": "int64"
           }
         ],
@@ -147,16 +107,6 @@
         }
       }
     },
-    "pbRequestType": {
-      "type": "string",
-      "enum": [
-        "UNIVERSAL",
-        "WEB",
-        "IMAGES",
-        "LOCAL"
-      ],
-      "default": "UNIVERSAL"
-    },
     "pbResponse": {
       "type": "object",
       "properties": {
@@ -166,9 +116,8 @@
         "type": {
           "$ref": "#/definitions/pbType"
         },
-        "is_success": {
-          "type": "boolean",
-          "format": "boolean"
+        "isSuccess": {
+          "type": "boolean"
         }
       }
     },
@@ -185,7 +134,7 @@
     "protobufAny": {
       "type": "object",
       "properties": {
-        "type_url": {
+        "typeUrl": {
           "type": "string"
         },
         "value": {
@@ -194,12 +143,9 @@
         }
       }
     },
-    "runtimeError": {
+    "rpcStatus": {
       "type": "object",
       "properties": {
-        "error": {
-          "type": "string"
-        },
         "code": {
           "type": "integer",
           "format": "int32"

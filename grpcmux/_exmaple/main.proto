@@ -6,58 +6,48 @@ option go_package = ".;pb";
 
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
+import "github.com/envoyproxy/protoc-gen-validate/validate/validate.proto";
 
 service Say {
-    rpc Hello (Request) returns (Response) {
-        option (google.api.http) = {
-			get: "/v1/greeter/hello/{id}"
-		};
-    }
+  rpc Hello (Request) returns (Response) {
+    option (google.api.http) = {
+      get: "/v1/greeter/hello/{id}"
+    };
+  }
 
-    rpc Errors (google.protobuf.Empty) returns (google.protobuf.Empty) {
-        option (google.api.http) = {
-			get: "/v1/greeter/errors"
-		};
-    }
+  rpc Errors (google.protobuf.Empty) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      get: "/v1/greeter/errors"
+    };
+  }
 
-    rpc Any (Data) returns (Data) {
-        option (google.api.http) = {
-			post: "/v1/greeter/any"
-			body:"*"
-		};
-    }
+  rpc Any (Data) returns (Data) {
+    option (google.api.http) = {
+      post: "/v1/greeter/any"
+      body:"*"
+    };
+  }
 }
 
 
 message Request {
-    uint32 id = 1;
-    string name = 2;
-    int32 age = 3;
-    enum Type {
-        UNIVERSAL = 0;
-        WEB = 1;
-        IMAGES = 2;
-        LOCAL = 3;
-    }
-    Type type = 4;
-    uint32 page = 5;
-    int64 limit = 6;
+  uint32 id = 1 [(validate.rules).uint32.gt    = 999];
 }
 
 message Response {
-    string msg = 1;
-    Type type = 2;
-    bool is_success = 3;
+  string msg = 1;
+  Type type = 2;
+  bool is_success = 3;
 }
 
 message Data {
-    bytes data = 1;
+  bytes data = 1;
 }
 
 enum Type {
-    UNIVERSAL = 0;
-    WEB = 1;
-    IMAGES = 2;
-    LOCAL = 3;
+  UNIVERSAL = 0;
+  WEB = 1;
+  IMAGES = 2;
+  LOCAL = 3;
 }
 
