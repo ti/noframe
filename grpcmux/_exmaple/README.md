@@ -8,7 +8,7 @@ exmple `main.proto`
 
 ### 2. build the server interface code
 
-`sh build.sh`
+`make`
 
 ### 3. write your server code to implement the proto
 
